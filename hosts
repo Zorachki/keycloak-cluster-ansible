@@ -1,0 +1,10 @@
+[nodes]
+node1 ansible_host=192.168.137.121
+node2 ansible_host=192.168.137.122
+node3 ansible_host=192.168.137.123
+
+[balance]
+balancer ansible_host=192.168.137.124
+
+[all:vars]
+keycloak_port=8080

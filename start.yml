@@ -1,0 +1,16 @@
+- name: Deploy Keycloak cluster with Galera
+  become: true
+  hosts: nodes
+  roles:
+    - mariadb
+    - keycloak
+
+- name: Set up load balancer  
+  become: true
+  hosts: balance
+  roles:
+    - proxy
+  vars:
+    node1: "{{ hostvars[groups['nodes'][0]]['ansible_default_ipv4']['address'] }}"
+    node2: "{{ hostvars[groups['nodes'][1]]['ansible_default_ipv4']['address'] }}"
+    node3: "{{ hostvars[groups['nodes'][2]]['ansible_default_ipv4']['address'] }}"

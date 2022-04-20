@@ -1,0 +1,7 @@
+keycloak_port: 8080
+ssl_dir: /etc/ssl/haproxy
+path:
+  key: "{{ ssl_dir }}/private/haproxy.key"
+  csr: "{{ ssl_dir }}/certs/haproxy.csr"
+  crt: "{{ ssl_dir }}/private/haproxy.crt"
+  pem: "{{ ssl_dir }}/certs/haproxy.pem"

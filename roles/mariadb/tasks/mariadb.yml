@@ -1,0 +1,36 @@
+- name: Update yum repos
+  template:
+    src: MariaDB.repo.j2
+    dest: /etc/yum.repos.d/MariaDB.repo
+  when: ansible_facts['os_family'] == "RedHat"
+    
+- name: Install MariaDB
+  package:
+    name: mariadb-server
+    state: present
+
+- name: Check MariaDB status
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Update MariaDB config (deb)
+  blockinfile:
+        path: /etc/mysql/mariadb.cnf
+        block: |
+          [mysql]
+          user=root
+          password=root
+  when: ansible_facts['os_family'] == "Debian"
+  no_log: true
+
+- name: Update MariaDB config (rpm)
+  blockinfile:
+        path: /etc/my.cnf
+        block: |
+          [mysql]
+          user=root
+          password=root
+  when: ansible_facts['os_family'] == "RedHat"
+  no_log: true

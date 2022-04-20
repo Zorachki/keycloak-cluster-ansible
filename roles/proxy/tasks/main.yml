@@ -1,0 +1,86 @@
+- name: Install HAProxy
+  package:
+    name:
+      - haproxy
+      - python3-pip
+      - python-setuptools
+    state: present
+
+- name: Install LibSELinux-python3
+  yum:
+    name: libselinux-python3
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Create key directory
+  file:
+    path: "{{ ssl_dir }}/private"
+    state:  directory
+    recurse: yes
+
+- name: Create cert directory
+  file:
+    path: "{{ ssl_dir }}/certs"
+    state:  directory
+    
+- name: Upgrade pip
+  pip:
+    name:
+      - pip
+    state: latest
+    executable: pip3
+    
+- name: Install cryptography
+  pip:
+    name:
+      - cryptography
+    state: latest
+    executable: pip3
+
+- name: Create self-signed certificate
+  block:
+    - name: Generate private key
+      openssl_privatekey:
+        path: "{{ path.key}}"
+        size: 2048
+      notify: Restart HAProxy
+
+    - name: Create CSR
+      openssl_csr:
+        path: "{{ path.csr }}"
+        privatekey_path: "{{ path.key}}"
+      notify: Restart HAProxy
+
+    - name: Create Certificate
+      openssl_certificate:
+        provider: selfsigned
+        path: "{{ path.crt }}"
+        privatekey_path: "{{ path.key}}"
+        csr_path: "{{ path.csr }}"
+      notify: Restart HAProxy
+
+    - name: Create PEM file
+      assemble:
+        src: "{{ ssl_dir }}/private"
+        dest: "{{ path.pem }}"
+      notify: Restart HAProxy
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+- name: Add cluster to config
+  blockinfile:
+        path: /etc/haproxy/haproxy.cfg
+        block: |
+          frontend  http
+              bind {{ hostvars[groups['balance'][0]]['ansible_default_ipv4']['address'] }}:80
+              default_backend keycloak
+
+          frontend  https
+              bind {{ hostvars[groups['balance'][0]]['ansible_default_ipv4']['address'] }}:443 ssl crt {{ path.pem }}
+              default_backend keycloak
+
+          backend keycloak
+              balance     roundrobin
+              server  node1 {{ hostvars[groups['nodes'][0]]['ansible_default_ipv4']['address'] }}:{{ keycloak_port }} check
+              server  node2 {{ hostvars[groups['nodes'][1]]['ansible_default_ipv4']['address'] }}:{{ keycloak_port }} check
+              server  node3 {{ hostvars[groups['nodes'][2]]['ansible_default_ipv4']['address'] }}:{{ keycloak_port }} check
+  notify: Restart HAProxy

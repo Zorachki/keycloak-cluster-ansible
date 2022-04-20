@@ -1,0 +1,12 @@
+keycloak:
+  version: 17.0.1   # Don't use versions older than 17.0.0. It requires other methods of deploying
+  admin_passwd: op12c9nm
+  dir: /opt/keycloak
+  db_passwd: keyC10@K
+
+keycloak_port: 8080
+keycloak_link: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak.version }}/keycloak-{{ keycloak.version }}.tar.gz"
+
+# If using database is MariaDB switch maria_db var to "true" and conversely
+db_vendor: mariadb
+maria_db: true

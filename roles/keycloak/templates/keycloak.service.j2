@@ -1,0 +1,13 @@
+[Unit]
+Description=Keycloak Service
+Documentation=https://www.keycloak.org/documentation.html
+After=network.target
+Requires=keycloak.service
+
+[Service]
+Type=idle
+ExecStart={{ keycloak.dir }}/bin/kc.sh start --hostname-strict=false --db-username=keycloak --db-password={{ keycloak.db_passwd }} --http-enabled=true --http-port={{ keycloak_port }} --proxy=passthrough --hostname-strict-https=false --spi-dblock-jpa-lock-wait-timeout 3600
+TimeoutStartSec=3600
+
+[Install]
+WantedBy=multi-user.target

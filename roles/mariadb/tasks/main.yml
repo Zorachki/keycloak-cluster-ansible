@@ -1,0 +1,23 @@
+- include_tasks: mariadb.yml
+
+- name: Install Python packages for MySQL
+  block:
+    - name: Install pip
+      apt:
+        name: python3-pip
+        state: present
+        
+    - name: Install PyMySQL
+      pip:
+        name: pymysql
+        state: present
+  when: ansible_facts['os_family'] == "Debian"
+    
+- name: Install MySQL-python
+  yum:
+    name:
+      - python3-pip
+      - MySQL-python
+  when: ansible_facts['os_family'] == "RedHat"
+
+- include_tasks: galera.yml

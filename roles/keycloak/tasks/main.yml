@@ -1,0 +1,91 @@
+- name: Install Java (deb)
+  apt:
+    name: openjdk-11-jdk
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Java (rpm)
+  yum:
+    name: java-11-openjdk-devel
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Download Keycloak
+  get_url:
+    url: "{{ keycloak_link }}"
+    dest: /tmp
+  register: tmp_dir
+
+- name: Unpack Keycloak
+  unarchive:
+    src: "{{ tmp_dir.dest }}"
+    dest: /tmp
+    remote_src: yes
+
+- name: Create directory
+  copy:
+    src: "/tmp/keycloak-{{ keycloak.version }}/"
+    dest: "{{ keycloak.dir }}"
+    remote_src: yes
+    directory_mode: yes  
+
+- name: Define socket path
+  shell: mysql -u root -e "select VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES where VARIABLE_NAME='SOCKET';" | grep .sock
+  register: socket_path
+
+- name: Create a database with name 'keycloak'
+  mysql_db:
+    name: keycloak
+    state: present
+    login_unix_socket: "{{ socket_path.stdout }}"
+  run_once: true
+  
+- name: Create database user with name 'keycloak' with all database privileges
+  mysql_user:
+    name: keycloak
+    password: "{{ keycloak.db_passwd }}"
+    priv: '*.*:ALL'
+    login_unix_socket: "{{ socket_path.stdout }}"
+    state: present
+  run_once: true
+  no_log: true
+
+- name: Add credentials to start
+  lineinfile:
+    dest: "{{ keycloak.dir }}/bin/kc.sh"
+    insertafter: '#!/bin/bash'
+    line: '{{ item }}'
+    state: present
+  with_items:
+      - "export KEYCLOAK_ADMIN_PASSWORD={{ keycloak.admin_passwd }}"
+      - "export KEYCLOAK_ADMIN=admin"
+  no_log: true
+
+- name: Create Keycloak daemon
+  template:
+    src: keycloak.service.j2
+    dest: /etc/systemd/system/keycloak.service
+  notify: Start Keycloak service
+
+- name: Configuring a database vendor
+  shell: "{{ keycloak.dir }}/bin/kc.sh build --db={{ db_vendor }}"
+  when: not maria_db
+
+- name: Configuring MariaDB
+  shell: "{{ keycloak.dir }}/bin/kc.sh build --db={{ db_vendor }} --transaction-xa-enabled=false"
+  when: maria_db | bool
+
+- name: Start first member of Keycloak cluster
+  block:
+    - name: Start service
+      systemd:
+        daemon_reload: yes
+        state: started
+        name: keycloak
+        enabled: yes
+
+    - name: Wait for Keycloak port to become open on the host
+      wait_for:
+        port: "{{ keycloak_port }}"
+        timeout: 3600
+  run_once: true

@@ -1,0 +1,14 @@
+- name: Stop MariaDB
+  systemd:
+    name: mariadb
+    state: stopped
+
+- name: Restart MariaDB
+  systemd:
+    name: mariadb
+    state: restarted
+
+- name: Start MariaDB
+  systemd:
+    name: mariadb
+    state: started
