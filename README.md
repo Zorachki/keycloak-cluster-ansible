@@ -38,7 +38,7 @@ node3 ansible_host=<node3-ip-address>
 balancer ansible_host=<balancer-ip-address>
 
 [all:vars]
-keycloak.port=8080 (or another wanted port)
+keycloak_port=8080 (or another wanted port)
 ```
 
 
