@@ -27,7 +27,7 @@
     src: "/tmp/keycloak-{{ keycloak.version }}/"
     dest: "{{ keycloak.dir }}"
     remote_src: yes
-    directory_mode: yes  
+    directory_mode: yes
 
 - name: Define socket path
   shell: mysql -u root -e "select VARIABLE_VALUE from information_schema.GLOBAL_VARIABLES where VARIABLE_NAME='SOCKET';" | grep .sock
@@ -39,7 +39,7 @@
     state: present
     login_unix_socket: "{{ socket_path.stdout }}"
   run_once: true
-  
+
 - name: Create database user with name 'keycloak' with all database privileges
   mysql_user:
     name: keycloak
